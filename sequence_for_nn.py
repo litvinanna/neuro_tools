@@ -66,8 +66,9 @@ class Inpaintinglog():
         self.out_nps.append(out_np)
         np.save("{}/{:05d}_out_np.npy".format(self.log_f, i), out_np)
     
-    def end_log(self):
+    def end_log(self, net):
         np.save("{}/loss.npy".format(self.log_f), self.loss)
+        np.save("{}/net".format(self.log_f), net)
 
     
         
