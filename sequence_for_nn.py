@@ -1,5 +1,5 @@
 import numpy as np
-import IPython.display
+# import IPython.display
 import random 
 
 from Bio import SeqIO
@@ -7,7 +7,6 @@ import math
 from collections import Counter
 import datetime
 import time
-import matplotlib.pyplot as plt 
 import os
 
 fasta_file = "data/myco_genome.fasta"
@@ -19,7 +18,7 @@ homo = "data/homos_2.fasta"
 
 class Inpaintinglog():
     def __init__(self, container = None, every = 1000):
-        self.datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        
         self.loss = []
         self.runtime = None
         self.out_nps = []
@@ -53,13 +52,7 @@ class Inpaintinglog():
         
     
     def init_log(self):
-        file = open(self.log_f + "/info.txt", "+a")
-        file.write(self.datetime + "\n") 
-        file.write(self.net_description + "\n") 
-        file.write(self.seq_description + "\n")
-        file.close()
-        np.save(self.log_f + "/seq_np.npy", self.container.seq_np)
-        np.save(self.log_f + "/mask.npy", self.container.mask)
+        
         
     
     def compare_log(self, i, out_np):
@@ -68,7 +61,6 @@ class Inpaintinglog():
     
     def end_log(self, net):
         np.save("{}/loss.npy".format(self.log_f), self.loss)
-        np.save("{}/net".format(self.log_f), net)
 
     
         
@@ -114,7 +106,8 @@ class Container:
         length_genome = len(self.record.seq)
         self.genome_part = ( start/length_genome*100, (start+length)/length_genome*100)
         
-        self.short_title = "{:07d}_{:.1f}-{:.1f}_".format(self.start, self.genome_part[0], self.genome_part[1])
+        self.short_title = "{:.1f}-{:.1f}_".format(self.genome_part[0], self.genome_part[1])
+        
         self.title = "{:07d}_{:09d}_{:.1f}-{:.1f}_".format(self.length, self.start, self.genome_part[0], self.genome_part[1])
         print("cuted seq for analysis, length = {}, start = {}, part = {:.1f}-{:.1f}".format(self.length, self.start,
                                                                                               self.genome_part[0], 
@@ -192,7 +185,24 @@ class Container:
         c["baseline_part"] = c["baseline_mean"] / self.length_mask
         c["baseline_part_sd"] = c["baseline_sd"] / self.length_mask
         print("got baseline")
-
+        
+    def write_folder(self, folder):
+        self.datetime = datetime.datetime.now().strftime("%m-%d_%H:%M")
+        
+        self.log_f = os.path.join(folder, self.datetime + "_" + container.short_title
+        if not os.path.isdir(self.log_f):
+            os.mkdir(self.log_f)
+                                  
+        file = open(os.path.join(self.log_f, "info.txt"), "w")
+        
+        file.write(self.datetime + "\n") 
+        file.write(self.net_description + "\n") 
+        file.write(self.seq_description + "\n")
+        file.close()
+                                  
+        np.save(os.path.join(self.log_f, "seq_np.npy"), self.container.seq_np)
+        np.save(os.path.join(self.log_f,  "mask.npy"), self.container.mask)
+        
         
 def compare(seq_np, out_np):
     
