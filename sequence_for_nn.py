@@ -155,7 +155,7 @@ class Container:
         file.close()
                                   
         np.save(os.path.join(self.log_f, "seq_np.npy"), self.seq_np)
-        np.save(os.path.join(self.log_f,  "mask.npy"), self.mask)
+        np.save(os.path.join(self.log_f,  "mask_np.npy"), self.mask)
         print("wrote folder {}".format(self.log_f))
                                   
                                   

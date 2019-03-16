@@ -204,7 +204,7 @@ def inpainting(seq_np, mask_np, cuda, iterations, logger):
 
 
 seq_np = np.load(os.path.join(path, "seq_np.npy"))
-mask_np = np.load(os.path.join(path, "mask.npy"))
+mask_np = np.load(os.path.join(path, "mask_np.npy"))
 logger = Logger(path, every)
 
 inpainting(seq_np, mask_np, args.cuda, args.iter, logger)
