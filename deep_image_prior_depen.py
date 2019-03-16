@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .common import *
+import numpy as np
 
 
 #models/skip.py

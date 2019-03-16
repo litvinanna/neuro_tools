@@ -22,13 +22,17 @@ args = parser.parse_args()
 print("input file {}".format(args.file))
 
 container = Container()
-file_format = input_file.split(".")[1]
+file_format = args.file.split(".")[-1]
+print("file format {}".format(file_format))
 container.read_seq(genome_file = args.file, genome_file_type = file_format)
-if length == 0:
+if args.length == 0:
     length = len(container.seq)
+else:
+    length = args.length
+start = args.start
 container.cut_seq(length = length, start = start)
 container.generate_seq()
 container.generate_mask()
-container.write_folder(args.out)
+container.write_folder(folder = args.out)
 
 

@@ -16,51 +16,7 @@ myco = "/Users/pochtalionizm/Projects/neuro/data/myco.gbff"
 vibrio = "/Users/pochtalionizm/Projects/neuro/data/vibrio.gbff"
 homo = "data/homos_2.fasta"
 
-class Inpaintinglog():
-    def __init__(self, container = None, every = 1000):
-        
-        self.loss = []
-        self.runtime = None
-        self.out_nps = []
-        self.out_nps_every = every
-        self.net_parameters = None
-        self.net_description = None
-        
-        self.log_f = "data/" + self.datetime + "_" + container.short_title
-        self.container = container
-        self.seq_description = container.title
 
-        self.counters = []
-#         self.keys = ["mask_part", "coding_part", "noncoding_part", "free_part"]
-        
-        if not os.path.isdir(self.log_f):
-            os.mkdir(self.log_f)
-    
-    def add_net_parameters(self, p):
-        self.net_keys = ["NET_TYPE", "pad", "OPT_OVER", "OPTIMIZER", "INPUT", "input_depth", "LR", "reg_noise_std",
-                         "num_iter", "cuda", "num_parameters", 
-                       "num_channels_down",
-                       "num_channels_up",
-                       "num_channels_skip",  
-                       "filter_size_up", "filter_size_down", 
-                       "upsample_mode", "filter_skip_size",
-                       "need_sigmoid", "need_bias", "pad", "act_fun"]
-        
-        self.net_parameters = {self.net_keys[i]:p[i] for i in range(len(self.net_keys))}
-        self.num_iter = p[8]
-        self.net_description = ",".join([str(x) for x in p])
-        
-    
-    def init_log(self):
-        
-        
-    
-    def compare_log(self, i, out_np):
-        self.out_nps.append(out_np)
-        np.save("{}/{:05d}_out_np.npy".format(self.log_f, i), out_np)
-    
-    def end_log(self, net):
-        np.save("{}/loss.npy".format(self.log_f), self.loss)
 
     
         
@@ -189,23 +145,21 @@ class Container:
     def write_folder(self, folder):
         self.datetime = datetime.datetime.now().strftime("%m-%d_%H:%M")
         
-        self.log_f = os.path.join(folder, self.datetime + "_" + container.short_title
+        self.log_f = os.path.join(folder, self.datetime + "_" + self.short_title)
         if not os.path.isdir(self.log_f):
-            os.mkdir(self.log_f)
-                                  
+            os.mkdir(self.log_f)                    
         file = open(os.path.join(self.log_f, "info.txt"), "w")
         
         file.write(self.datetime + "\n") 
-        file.write(self.net_description + "\n") 
-        file.write(self.seq_description + "\n")
+        file.write(self.title + "\n")
         file.close()
                                   
-        np.save(os.path.join(self.log_f, "seq_np.npy"), self.container.seq_np)
-        np.save(os.path.join(self.log_f,  "mask.npy"), self.container.mask)
-        
-        
+        np.save(os.path.join(self.log_f, "seq_np.npy"), self.seq_np)
+        np.save(os.path.join(self.log_f,  "mask.npy"), self.mask)
+        print("wrote folder {}".format(self.log_f))
+                                  
+                                  
 def compare(seq_np, out_np):
-    
     if len(seq_np) != len(out_np):
         print("error")
         return None

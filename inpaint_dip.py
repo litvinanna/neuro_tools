@@ -2,10 +2,72 @@ from __future__ import print_function
 import numpy as np
 import torch
 import torch.optim
+from deep_image_prior_depen import *
+import argparse
+import os
+import datetime
+import time
 
-from image_prior_depen import *
+parser = argparse.ArgumentParser(description='Generates folder with np array for seq and mask for sequence file')
 
-def optimize(optimizer_type, parameters, closure, LR, num_iter, inpaintinglog):
+parser.add_argument( "-p", "--path", required=True, type=str, 
+                    help='folder with sqeunces to inpaint')
+parser.add_argument( "-n", "--iter", default = 501, type=int, 
+                    help='number of iterations')
+parser.add_argument( "-e", "--every", default = 500, type=int, 
+                    help='save out_np every')
+parser.add_argument( "-c", "--cuda", action='store_true', 
+                   help = "add for cuda gpu")
+
+args = parser.parse_args()
+
+path = args.path
+every = args.every   
+
+
+if os.path.isdir(path):
+    print("got directory {}".format(path))
+else:
+    print("bad directory")
+    exit()
+               
+class Logger():
+    def __init__(self, path, every):
+        self.loss = []
+        self.every = every
+        self.path = path
+    def add_net_parameters(self, p):
+        net_keys = ["NET_TYPE", "pad", "OPT_OVER", "OPTIMIZER", "INPUT", "input_depth", "LR", "reg_noise_std",
+                         "num_iter", "cuda", "num_parameters", 
+                       "num_channels_down",
+                       "num_channels_up",
+                       "num_channels_skip",  
+                       "filter_size_up", "filter_size_down", 
+                       "upsample_mode", "filter_skip_size",
+                       "need_sigmoid", "need_bias", "pad", "act_fun"]
+
+        net_parameters = {net_keys[i]:p[i] for i in range(len(net_keys))}
+        num_iter = p[8]
+        net_description = ",".join([str(x) for x in p])
+        file = open(os.path.join(self.path, "info.txt"), "+a")
+        file.write(net_description + "\n")
+        file.close()
+        
+    
+    def middle_log(self, i, total_loss, out_torch):
+        self.loss.append(total_loss)
+        out_np = torch_to_np(out_torch)
+        if i % self.every == 0:
+            np.save(os.path.join(self.path, "{:05d}_out_np.npy".format(i)), out_np)
+
+    def end_log(self, net):
+        np.save(os.path.join(self.path, "loss.npy"), self.loss)
+        torch.save(net.state_dict(), os.path.join(self.path, "net_dict.pty"))
+        torch.save(net, os.path.join(self.path, "net.pty"))
+
+
+
+def optimize(optimizer_type, parameters, closure, LR, num_iter, logger):
     """Runs optimization loop.
 
     Args:
@@ -21,14 +83,14 @@ def optimize(optimizer_type, parameters, closure, LR, num_iter, inpaintinglog):
         for j in range(num_iter):
             optimizer.zero_grad()
 #             closure()
-            closure(j, inpaintinglog)
+            closure(j, logger)
             optimizer.step()
     else:
         assert False
         
         
         
-def inpainting(seq_np, mask_np, cuda = False, iterations = 100, inpaintinglog = None):
+def inpainting(seq_np, mask_np, cuda, iterations, logger):
     
 #     seq_np = container.seq_np
 #     mask_np = container.mask_np
@@ -89,8 +151,8 @@ def inpainting(seq_np, mask_np, cuda = False, iterations = 100, inpaintinglog = 
     s  = sum(np.prod(list(p.size())) for p in net.parameters())
     print ('Number of params: %d' % s)
     
-    if inpaintinglog != None:
-        inpaintinglog.add_net_parameters([NET_TYPE, pad, OPT_OVER, OPTIMIZER, INPUT, 
+
+    logger.add_net_parameters([NET_TYPE, pad, OPT_OVER, OPTIMIZER, INPUT, 
                                      input_depth, LR, reg_noise_std, num_iter, cuda, s,
                                         num_channels_down,
                                        num_channels_up,
@@ -99,7 +161,6 @@ def inpainting(seq_np, mask_np, cuda = False, iterations = 100, inpaintinglog = 
                                        upsample_mode, filter_skip_size,
                                        need_sigmoid, need_bias, pad, act_fun])
 
-        inpaintinglog.init_log()
 
 
     # Loss
@@ -108,7 +169,7 @@ def inpainting(seq_np, mask_np, cuda = False, iterations = 100, inpaintinglog = 
     img_var = np_to_torch(seq_np).type(dtype)
     mask_var = np_to_torch(mask_np).type(dtype)
     
-    def closure(i, inpaintinglog):
+    def closure(i, logger):
     #     if param_noise:
     #         for n in [x for x in net.parameters() if len(x.size()) == 4]:
     #             n = n + n.detach().clone().normal_() * n.std() / 50
@@ -122,12 +183,8 @@ def inpainting(seq_np, mask_np, cuda = False, iterations = 100, inpaintinglog = 
         total_loss.backward()
         print ('Iteration %05d    Loss %f' % (i, total_loss.item()), '\r', end='')
         
-        if inpaintinglog != None:
-            inpaintinglog.loss.append(total_loss)
-            if i % inpaintinglog.out_nps_every == 0:
-                out_np = torch_to_np(out)
-                inpaintinglog.compare_log(i, out_np)
 
+        logger.middle_log(i, total_loss, out)
         return total_loss
     
     net_input_saved = net_input.detach().clone()
@@ -135,11 +192,19 @@ def inpainting(seq_np, mask_np, cuda = False, iterations = 100, inpaintinglog = 
     p = get_params(OPT_OVER, net, net_input) # list of tensors to optimize over !! in optimize
     
     start_time = time.time()
-    optimize(OPTIMIZER, p, closure, LR, num_iter, inpaintinglog) # optimize is in utils/common.utils
+    optimize(OPTIMIZER, p, closure, LR, num_iter, logger) # optimize is in utils/common.utils
     elapsed_time = time.time() - start_time
     print("\ntime: {}s".format(elapsed_time))
     
-    out_np = torch_to_np(net(net_input))
-    inpaintinglog.end_log()
     
+    logger.end_log(net)
+    
+    out_np = torch_to_np(net(net_input))
     return out_np
+
+
+seq_np = np.load(os.path.join(path, "seq_np.npy"))
+mask_np = np.load(os.path.join(path, "mask.npy"))
+logger = Logger(path, every)
+
+inpainting(seq_np, mask_np, args.cuda, args.iter, logger)
