@@ -8,6 +8,8 @@ import os
 import datetime
 import time
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
 parser = argparse.ArgumentParser(description='Generates folder with np array for seq and mask for sequence file')
 
 parser.add_argument( "-p", "--path", required=True, type=str, 
@@ -206,5 +208,4 @@ def inpainting(seq_np, mask_np, cuda, iterations, logger):
 seq_np = np.load(os.path.join(path, "seq_np.npy"))
 mask_np = np.load(os.path.join(path, "mask_np.npy"))
 logger = Logger(path, every)
-
 inpainting(seq_np, mask_np, args.cuda, args.iter, logger)

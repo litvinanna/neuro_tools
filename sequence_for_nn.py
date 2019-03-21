@@ -143,7 +143,7 @@ class Container:
         print("got baseline")
         
     def write_folder(self, folder):
-        self.datetime = datetime.datetime.now().strftime("%m-%d_%H:%M")
+        self.datetime = datetime.datetime.now().strftime("%m-%d-%H-%M")
         
         self.log_f = os.path.join(folder, self.datetime + "_" + self.short_title)
         if not os.path.isdir(self.log_f):
