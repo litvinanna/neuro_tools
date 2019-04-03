@@ -26,13 +26,15 @@ file_format = args.file.split(".")[-1]
 print("file format {}".format(file_format))
 container.read_seq(genome_file = args.file, genome_file_type = file_format)
 if args.length == 0:
-    length = len(container.seq)
+    length = len(container.record.seq)
 else:
     length = args.length
 start = args.start
 container.cut_seq(length = length, start = start)
 container.generate_seq()
 container.generate_mask()
+if file_format == "genbank":
+    container.generate_coding()
 container.write_folder(folder = args.out)
 
 
