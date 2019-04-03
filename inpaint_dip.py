@@ -8,7 +8,7 @@ import os
 import datetime
 import time
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 parser = argparse.ArgumentParser(description='Generates folder with np array for seq and mask for sequence file')
 
@@ -62,10 +62,14 @@ class Logger():
         if i % self.every == 0:
             np.save(os.path.join(self.path, "{:05d}_out_np.npy".format(i)), out_np)
 
-    def end_log(self, net):
-        np.save(os.path.join(self.path, "loss.npy"), self.loss)
+    def end_log(self, net, time = None):
+        loss = np.array((self.loss))
+        np.save(os.path.join(self.path, "loss.npy"), loss)
         torch.save(net.state_dict(), os.path.join(self.path, "net_dict.pty"))
         torch.save(net, os.path.join(self.path, "net.pty"))
+        file = open(os.path.join(self.path, "info.txt"), "+a")
+        file.write("{:.3f}s\t{}\n".format(time, torch.cuda.get_device_name(0)))
+        file.close()
 
 
 
@@ -199,7 +203,7 @@ def inpainting(seq_np, mask_np, cuda, iterations, logger):
     print("\ntime: {}s".format(elapsed_time))
     
     
-    logger.end_log(net)
+    logger.end_log(net, elapsed_time)
     
     out_np = torch_to_np(net(net_input))
     return out_np
