@@ -212,7 +212,13 @@ def get_coding(path):
     
 def get_loss(path):
     return np.load(os.path.join(path, "loss.npy"))
-    
+ 
+def get_info(path):
+    with open(os.path.join(path, "info.txt")) as file:
+        for line in file.readlines():
+            print(line)
+            
+            
 def iterate_outs(path):
     counter = 0
     for i in range(4001):
