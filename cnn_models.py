@@ -22,5 +22,5 @@ def create_cnn_model_1(input_size = 10):
 def run_cnn_model_1(data, patience = 5):
     model = create_cnn_model_1()
     es = EarlyStopping(monitor='val_loss', verbose=1, patience=patience)
-    history = model.fit(data.train1, data.train_ans, epochs=100, validation_split = 0.1, callbacks = [es], verbose = 0)  
+    history = model.fit(data.train1, data.train_ans, epochs=100, validation_split = 0.1, callbacks = [es], verbose = 1)  
     return model, history
