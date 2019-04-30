@@ -5,7 +5,7 @@ parser.add_argument('-t', '--type', type = str, help = "dnn, cnn, rnn")
 parser.add_argument('-m', '--model', type = int, help = "model number to run")
 parser.add_argument('-e', '--enviroment', type= int, help = "enviroment size 6, 12, 24")
 parser.add_argument('-p', '--patience', type = int, help = 'patience')
-parser.add_argument('-s', '--shift', default = 0, help="default 0")
+parser.add_argument('-s', '--shift', type = int, default = 0, help="default 0")
 parser.add_argument('-ids', type=str, default='ecoli_100000_10000', help="ids list ecoli_100000_10000")
 
 
@@ -32,14 +32,25 @@ def create_f(*args, **kwargs):
     if net_type == "dnn":
         if model_number == 1:
             return create_dnn_model_1(*args, **kwargs)
+        elif model_number == 2:
+            return create_dnn_model_2(*args, **kwargs)
+        
     elif net_type == "cnn":
         if model_number == 1:
             return create_cnn_model_1(*args, **kwargs)
+        elif model_number == 2:
+            return create_cnn_model_1(*args, **kwargs)
+    elif net_type == "rnn":
+        if model_number == 1:
+            return create_rnn_model_1(*args, **kwargs)
+        elif model_number == 2:
+            return create_rnn_model_2(*args, **kwargs)
+
 
 
 def run_model(create_f, data, patience = 2):
     input_size = data.train1.shape[1]
-    model = create_f(input_size)
+    model = create_f(input_size =input_size )
     es = EarlyStopping(monitor='val_loss', verbose=1, patience=patience)
     history = model.fit(data.train1, data.train_ans, epochs=100, callbacks = [es], validation_data=(data.validate1, data.validate_ans))  
     return model, history
@@ -49,7 +60,7 @@ def run_model(create_f, data, patience = 2):
 times = 30
 
 data_list = generate_data("../results/" + ids, enviroment_size, shift)
-name = ids + "_{}_{}".format(enviroment_size, shift)
+name = ids + "_{:02d}_{:02d}".format(enviroment_size, shift)
 date = "{:%Y-%m-%d-%H-%M}".format(datetime.datetime.now())
 path = "../results/{}/{}".format(net_type, date)
 

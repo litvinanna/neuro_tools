@@ -39,3 +39,4 @@ def run_model(create_f, data, patience = 2):
     es = EarlyStopping(monitor='val_loss', verbose=1, patience=patience)
     history = model.fit(data.train1, data.train_ans, epochs=100, callbacks = [es], validation_data=(data.validate1, data.validate_ans))  
     return model, history
+
