@@ -79,7 +79,21 @@ class Container:
         self.seq_np = seq_np
         
         print("generated seq_np")
+    
+    def generate_seq_last(self):
+        print("...", end = "\r")
+ 
+        seq_np = np.zeros((self.length, 4), dtype = np.float64) 
+        for index in range(self.length):
+            base = self.seq[index]
+            if base in self.bases_list:
+                channel = self.bases_dict[base]
+                seq_np[index, channel] = 1
+            else:
+                print("alternative base")
+        self.seq_np = seq_np
         
+        print("generated seq_np")
         
     def generate_mask(self, seed=None):
         print("...", end = "\r")
@@ -105,6 +119,31 @@ class Container:
         self.title = self.title + "{}_{}".format(self.length_mask, '_'.join(self.record.description.split(' ')))
 
         print("generated mask with {} spots of {} bp".format(self.length_mask, spot))          
+    
+    def generate_mask_last(self, seed=None):
+        print("...", end = "\r")
+        length = self.length
+        length_mask = math.ceil(self.length * 0.1)
+        
+        if seed != None:
+            random.seed(seed)
+        mask_np = np.zeros((length, 4), dtype=np.float32)
+        mask = np.zeros(length)
+        mask_np.fill(1)
+        for n in range(length_mask):
+            spot = 1
+            index = random.randint(0, length-spot)
+            for i in range(index, index+spot):
+                mask_np[i, :] = [0,0,0,0]
+                mask[i] = 1
+                
+        self.mask_np = mask_np
+        self.length_mask = int(sum(mask)) # true mask length!!
+        self.mask = mask
+        self.short_title = self.short_title + '_'.join(self.record.description.split(' ')[0:2])
+        self.title = self.title + "{}_{}".format(self.length_mask, '_'.join(self.record.description.split(' ')))
+
+        print("generated mask with {} spots of {} bp".format(self.length_mask, spot))  
     
     def _get_freqs(self):
         counter = Counter(self.seq[0:self.length])

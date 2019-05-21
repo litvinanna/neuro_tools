@@ -178,16 +178,16 @@ def generate_data_cds_3(record, seq_cds, ids, enviroment_size = 6, shift = 0):
     def left(seq_np, ids):
         return np.array([seq_np[x-a:x,       ...] for x in ids])
     
-    def right(seq_np, ids):
-        return np.array([seq_np[x+1 : x+a+1, ...] for x in ids])
+#    def right(seq_np, ids):
+#        return np.array([seq_np[x+1 : x+a+1, ...] for x in ids])
     
     def ans(seq_np, ids):
         return np.array([seq_np[x + shift,   ...] for x in ids])
     
-
     print(len(ids_cds_plus) + len(ids_cds_minus))
+    
     set1_cds    = np.concatenate(( left(seq_np, ids_cds_plus),  left(seq_np_reversed, ids_cds_minus)))
-    set2_cds    = np.concatenate((right(seq_np, ids_cds_plus), right(seq_np_reversed, ids_cds_minus)))
+#    set2_cds    = np.concatenate((right(seq_np, ids_cds_plus), right(seq_np_reversed, ids_cds_minus)))
     set_ans_cds = np.concatenate((  ans(seq_np, ids_cds_plus),   ans(seq_np_reversed, ids_cds_minus)))
     
 #     print("non start")
@@ -196,18 +196,18 @@ def generate_data_cds_3(record, seq_cds, ids, enviroment_size = 6, shift = 0):
 #     set_ans_non =   ans(seq_np, ids_non)
  
     
-    return set1_cds, set2_cds, set_ans_cds  #set1_non, set2_non, set_ans_non 
+    return set1_cds, set_ans_cds  #set1_non,  set_ans_non 
 
 
 def generate_data_cds_2(record, seq_cds, train_ids, test_ids, validate_ids, enviroment_size = 6, shift = 0):   
     class Data(): pass
     data_cds = Data()
     print("train")
-    data_cds.train1, data_cds.train2, data_cds.train_ans          = generate_data_cds_3(record, seq_cds, train_ids, enviroment_size, shift)
+    data_cds.train1, data_cds.train_ans          = generate_data_cds_3(record, seq_cds, train_ids, enviroment_size, shift)
     print("test")
-    data_cds.test1, data_cds.test2, data_cds.test_ans             = generate_data_cds_3(record, seq_cds, test_ids, enviroment_size, shift)
+    data_cds.test1, data_cds.test_ans            = generate_data_cds_3(record, seq_cds, test_ids, enviroment_size, shift)
     print("validate" )
-    data_cds.validate1, data_cds.validate2, data_cds.validate_ans = generate_data_cds_3(record, seq_cds, validate_ids, enviroment_size, shift)
+    data_cds.validate1, data_cds.validate_ans    = generate_data_cds_3(record, seq_cds, validate_ids, enviroment_size, shift)
     
     return data_cds
 

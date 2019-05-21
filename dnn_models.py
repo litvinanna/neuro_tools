@@ -33,6 +33,7 @@ def create_dnn_model_2(input_size):
     return model
 
 
+
 def run_model(create_f, data, patience = 2):
     input_size = data.train1.shape[1]
     model = create_f(input_size)

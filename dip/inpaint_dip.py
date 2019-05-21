@@ -128,9 +128,9 @@ def inpainting(seq_np, mask_np, cuda, iterations, logger):
     figsize = 5 #????
     reg_noise_std = 0.03
     
-    num_channels_down = [128] * 3
-    num_channels_up =   [128] * 3
-    num_channels_skip =  [128] * 3 
+    num_channels_down = [16] * 5
+    num_channels_up =   [16] * 5
+    num_channels_skip =  [16] * 5 
     filter_size_up = 3
     filter_size_down = 3
     upsample_mode='nearest'
@@ -142,11 +142,11 @@ def inpainting(seq_np, mask_np, cuda, iterations, logger):
 
 
     net = skip(input_depth, seq_np.shape[0], #change skip function in models/skip.py
-               num_channels_down = [16, 32, 64, 64, 64],
-               num_channels_up = [16, 32, 64, 64, 64],
-               num_channels_skip = [16, 32, 64, 64, 64],  
-               filter_size_up = 3, filter_size_down = 3, 
-               upsample_mode = 'nearest', filter_skip_size = 1,
+               num_channels_down = num_channels_down,
+               num_channels_up = num_channels_up,
+               num_channels_skip = num_channels_skip,  
+               filter_size_up = filter_size_up, filter_size_down = filter_size_down, 
+               upsample_mode = upsample_mode, filter_skip_size = filter_skip_size,
                need_sigmoid = True, need_bias = True, pad = pad, act_fun = act_fun).type(dtype)
     
 
@@ -170,7 +170,9 @@ def inpainting(seq_np, mask_np, cuda, iterations, logger):
 
 
     # Loss
-    mse = torch.nn.MSELoss().type(dtype)
+   #mse = torch.nn.MSELoss().type(dtype)
+    mse = torch.nn.CrossEntropyLoss().type(dtype)
+    
 
     img_var = np_to_torch(seq_np).type(dtype)
     mask_var = np_to_torch(mask_np).type(dtype)

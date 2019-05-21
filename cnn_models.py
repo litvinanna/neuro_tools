@@ -31,6 +31,32 @@ def create_cnn_model_2(input_size = 10):
     x = Dense(4, activation='softmax')(x)
     model = Model(inp, x)
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    
+    return model
+
+def create_cnn_model_3(input_size = 10):
+    inp = Input(shape=(input_size, 4))
+    x = Conv1D(3, kernel_size= 3, activation='relu', strides = 3)(inp)
+    x = Flatten()(x)
+    x = Dense(4, activation='softmax')(x)
+    model = Model(inp, x)
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+def create_cnn_model_4(input_size = 10):
+    inp = Input(shape=(input_size, 4))
+    x = Conv1D(6, kernel_size = 3, activation='relu')(inp)
+    x = Flatten()(x)
+    x = Dense(4, activation='softmax')(x)
+    model = Model(inp, x)
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+def create_cnn_model_5(input_size = 10):
+    inp = Input(shape=(input_size, 4))
+    x = Conv1D(12, kernel_size = 3, activation='relu')(inp)
+    x = Flatten()(x)
+    x = Dense(4, activation='softmax')(x)
+    model = Model(inp, x)
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 

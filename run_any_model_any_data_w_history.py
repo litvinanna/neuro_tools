@@ -7,7 +7,8 @@ parser.add_argument('-e', '--enviroment', type= int, help = "enviroment size 6, 
 parser.add_argument('-p', '--patience', type = int, help = 'patience')
 parser.add_argument('-s', '--shift', type = int, default = 0, help="default 0")
 parser.add_argument('-ids', type=str, default='ecoli_100000_10000', help="ids list ecoli_100000_10000")
-
+parser.add_argument('--times', type = int, default = 30, help="default 30")
+parser.add_argument('--cds', action='store_true', help="use for cds training")
 
 args = parser.parse_args()
 
@@ -29,22 +30,8 @@ from dnn_models import *
 from data_loading import *
 
 def create_f(*args, **kwargs):
-    if net_type == "dnn":
-        if model_number == 1:
-            return create_dnn_model_1(*args, **kwargs)
-        elif model_number == 2:
-            return create_dnn_model_2(*args, **kwargs)
-        
-    elif net_type == "cnn":
-        if model_number == 1:
-            return create_cnn_model_1(*args, **kwargs)
-        elif model_number == 2:
-            return create_cnn_model_1(*args, **kwargs)
-    elif net_type == "rnn":
-        if model_number == 1:
-            return create_rnn_model_1(*args, **kwargs)
-        elif model_number == 2:
-            return create_rnn_model_2(*args, **kwargs)
+    return eval("create_"+ net_type +"_model_" + str(model_number))(*args, **kwargs)      
+
 
 
 
@@ -57,10 +44,15 @@ def run_model(create_f, data, patience = 2):
 
 
         
-times = 30
+times = args.times
 
-data_list = generate_data("../results/" + ids, enviroment_size, shift)
-name = ids + "_{:02d}_{:02d}".format(enviroment_size, shift)
+if not args.cds:
+    data_list = generate_data("../results/" + ids, enviroment_size, shift)
+else:
+    data_list = generate_data_cds_1("../results/" + ids, enviroment_size , shift , 
+                                    genome_file = "../data/ecoli.genbank", t = times)
+    
+name = ids + "_{:02d}_{:02d}_cds_{}".format(enviroment_size, shift, args.cds)
 date = "{:%Y-%m-%d-%H-%M}".format(datetime.datetime.now())
 path = "../results/{}/{}".format(net_type, date)
 
