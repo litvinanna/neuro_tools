@@ -26,7 +26,7 @@ def run_dnn_model_1(data, patience = 3):
 def create_dnn_model_2(input_size):
     x = Input(shape=(input_size, 4))
     y = Flatten()(x)
-    a = Dense(4)(y)
+    a = Dense(4, activation='relu')(y)
     z = Dense(4, activation='softmax')(a)
     model = Model(x, z)
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])

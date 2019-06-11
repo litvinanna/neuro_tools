@@ -7,9 +7,7 @@ def get_seq_np(genome_file):
     
     genome_file_type = genome_file.split('.')[-1]
     record = SeqIO.read(genome_file, genome_file_type)
-    length = len(record.seq)
     seq_np = hot_encode_seq(record.seq)
-            
     return seq_np
 
 def hot_encode_seq(seq):
@@ -35,53 +33,101 @@ def hot_encode_seq(seq):
     return seq_np
     
 
-def get_data_ids(seq_np, n_train = 100000, n_test=10000):
-
+def get_ids(n_train = 100000, n_test=10000, how = "uniform", genome_file = "../data/ecoli.genbank" ):
     n_validate = n_train // 10
     N = n_train + n_test + n_validate
-
-    genome_l = len(seq_np)
+    
+    genome_file_type = genome_file.split('.')[-1]
+    record = SeqIO.read(genome_file, genome_file_type)
+    genome_l = len(record.seq)
+    
+    if how == "uniform":
+        ids = uniform_ids(N, genome_l)
+    elif how == "coding":
+        ids = coding_ids(N, record, coding = True)
+    elif how == "noncoding":
+        ids = coding_ids(N, record, coding = False)
+        
+    train_ids, test_ids, validate_ids = split_data_ids(ids, n_train, n_test, n_validate)
+    return train_ids, test_ids, validate_ids
+    
+def uniform_ids(N, genome_l):
     ids = np.sort(np.random.choice(np.arange(start = 150, stop = genome_l - 150), N, replace=False))
+    return ids
+    
+def coding_ids(N, record, coding = True):
+    genome_l = len(record.seq)
+    seq_cds  = np.zeros(genome_l)
+    seq_non  = np.ones(genome_l)  
+    for f in record.features:
+        if f.type == 'CDS':
+            seq_cds[f.location.start + 24 : f.location.end-24] = 1
+            seq_non[f.location.start - 24: f.location.end + 24] = 0
+    if coding:
+        ids = np.sort(np.random.choice(np.where(seq_cds==1)[0], N, replace=False))
+    else:
+        ids = np.sort(np.random.choice(np.where(seq_non==1)[0], N, replace=False))
+    return ids
 
 
-    test_start = np.random.choice(N - n_test - n_validate - 1)
+def split_data_ids(ids, n_train, n_test, n_validate):
+    
+    test_start = np.random.choice(n_train - 1)
     test_end = test_start + n_test
     validate_start = test_end
     validate_end = validate_start + n_validate
 
     test_ids = ids[test_start:test_end]
     validate_ids = ids[validate_start:validate_end]
-    train_ids = np.concatenate((ids[0:test_start], ids[validate_end:genome_l])) 
+    train_ids = np.concatenate((ids[:test_start], ids[validate_end:])) 
     
     assert len(np.intersect1d(test_ids,     train_ids))     == 0
     assert len(np.intersect1d(validate_ids, train_ids))     == 0
     assert len(np.intersect1d(test_ids,     validate_ids))  == 0
 
-    
     return train_ids, test_ids, validate_ids
-    
-def generate_data_set(seq_np, train_ids, test_ids, validate_ids, enviroment_size = 6, shift = 0):   
+
+
+
+def generate_data_set(seq_np, seq_np_complement, train_ids, test_ids, validate_ids, enviroment_size = 6, shift = 0,):   
     class Data(): pass
     
 #    data = type('', (), {})()
     data = Data()
     
     a = enviroment_size
+    
+
     data.train1    = np.array([seq_np[x-a:x, ...] for x in train_ids    ])
     data.test1     = np.array([seq_np[x-a:x, ...] for x in test_ids     ])
     data.validate1 = np.array([seq_np[x-a:x, ...] for x in validate_ids ])
-    
+
     data.train2    = np.array([seq_np[x+1 : x+a+1, ...] for x in train_ids    ])
     data.test2     = np.array([seq_np[x+1 : x+a+1, ...] for x in test_ids     ])
     data.validate2 = np.array([seq_np[x+1 : x+a+1, ...] for x in validate_ids ])
-    
+
     data.train_ans    = np.array([seq_np[x + shift, ...]  for x in train_ids    ])
     data.test_ans     = np.array([seq_np[x + shift, ...]  for x in test_ids     ])
     data.validate_ans = np.array([seq_np[x + shift, ...]  for x in validate_ids ])
     
+    data.train3    = np.array([seq_np_complement[x+1 : x+a+1, ...] for x in train_ids    ])
+    data.test3     = np.array([seq_np_complement[x+1 : x+a+1, ...] for x in test_ids     ])
+    data.validate3 = np.array([seq_np_complement[x+1 : x+a+1, ...] for x in validate_ids ])
+
+        
+    for x in np.concatenate((train_ids, test_ids, validate_ids)):
+        seq_np[x, :] = 0
+        seq_np_complement[x, :] = 0
+        
+    data.trainf    = np.array([seq_np[x-a : x+a+1, ...] for x in train_ids    ])
+    data.testf     = np.array([seq_np[x-a : x+a+1, ...] for x in test_ids     ])
+    data.validatef = np.array([seq_np[x-a : x+a+1, ...] for x in validate_ids ])
+    
+    data.trainr    = np.array([seq_np_complement[x-a : x+a+1, ...] for x in train_ids    ])
+    data.testr     = np.array([seq_np_complement[x-a : x+a+1, ...] for x in test_ids     ])
+    data.validater = np.array([seq_np_complement[x-a : x+a+1, ...] for x in validate_ids ])
+    
     return data
-
-
 
 
 
@@ -89,26 +135,23 @@ def generate_data_set(seq_np, train_ids, test_ids, validate_ids, enviroment_size
 def generate_data(datapath, enviroment_size = 6, shift = 0, t = 30):
     
     name = datapath
-    
     seq_np = np.load(os.path.join(name, "seq_np.npy"))
+    seq_np_complement = np.load(os.path.join(name, "seq_np_complement.npy"))
     train_ids_list = np.load(os.path.join(name, "train_ids_list.npy"))
     test_ids_list = np.load(os.path.join(name, "test_ids_list.npy"))
     validate_ids_list= np.load(os.path.join(name, "validate_ids_list.npy"))
     
-    data_list = []
     
     for i in range(min(train_ids_list.shape[0], t)):
         print(i, end = " ")
         train_ids     = train_ids_list[i]
         test_ids      = test_ids_list[i]
         validate_ids  = validate_ids_list[i]
-        
-        data = generate_data_set(seq_np, train_ids, test_ids, validate_ids, enviroment_size, shift)
-        data_list.append(data)
-                           
-    return data_list
+        data = generate_data_set(seq_np, seq_np_complement, train_ids, test_ids, validate_ids, enviroment_size, shift)
+        yield data
    
 #---------------------------------------------------------
+'''
 from Bio.Seq import reverse_complement
 from Bio import SeqIO
 import numpy as np
@@ -164,10 +207,10 @@ def generate_ids_cds(ids, seq_cds):
         elif seq_cds[i] == 0:
             ids_non.append(i)
      
-    return ids_cds_plus, ids_cds_minus, ids_non
+    return ids_cds_plus, ids_cds_minus, ids_non '''
 
 
-def generate_data_cds_3(record, seq_cds, ids, enviroment_size = 6, shift = 0):
+'''def generate_data_cds_3(record, seq_cds, ids, enviroment_size = 6, shift = 0):
     
     ids_cds_plus, ids_cds_minus, ids_non =  generate_ids_cds(ids, seq_cds)
     
@@ -193,13 +236,13 @@ def generate_data_cds_3(record, seq_cds, ids, enviroment_size = 6, shift = 0):
 #     print("non start")
 #     set1_non    =  left(seq_np, ids_non)
 #     set2_non    = right(seq_np, ids_non)
-#     set_ans_non =   ans(seq_np, ids_non)
+#     set_ans_non =   ans(seq_np, ids_non) 
  
     
-    return set1_cds, set_ans_cds  #set1_non,  set_ans_non 
+    return set1_cds, set_ans_cds  #set1_non,  set_ans_non '''
 
 
-def generate_data_cds_2(record, seq_cds, train_ids, test_ids, validate_ids, enviroment_size = 6, shift = 0):   
+'''def generate_data_cds_2(record, seq_cds, train_ids, test_ids, validate_ids, enviroment_size = 6, shift = 0):   
     class Data(): pass
     data_cds = Data()
     print("train")
@@ -209,7 +252,7 @@ def generate_data_cds_2(record, seq_cds, train_ids, test_ids, validate_ids, envi
     print("validate" )
     data_cds.validate1, data_cds.validate_ans    = generate_data_cds_3(record, seq_cds, validate_ids, enviroment_size, shift)
     
-    return data_cds
+    return data_cds '''
 
 #-----------------------------------------------------------------------------
 

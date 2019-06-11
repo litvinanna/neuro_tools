@@ -8,7 +8,7 @@ parser.add_argument('-p', '--patience', type = int, help = 'patience')
 parser.add_argument('-s', '--shift', type = int, default = 0, help="default 0")
 parser.add_argument('-ids', type=str, default='ecoli_100000_10000', help="ids list ecoli_100000_10000")
 parser.add_argument('--times', type = int, default = 30, help="default 30")
-parser.add_argument('--cds', action='store_true', help="use for cds training")
+parser.add_argument('--envtype', type = int, default = 0, help="0 - test1, 1 - test1 test3, 2 - testf testr")
 
 args = parser.parse_args()
 
@@ -29,30 +29,46 @@ from cnn_models import *
 from dnn_models import *
 from data_loading import *
 
+
 def create_f(*args, **kwargs):
     return eval("create_"+ net_type +"_model_" + str(model_number))(*args, **kwargs)      
 
-
-
-
 def run_model(create_f, data, patience = 2):
-    input_size = data.train1.shape[1]
-    model = create_f(input_size =input_size )
-    es = EarlyStopping(monitor='val_loss', verbose=1, patience=patience)
-    history = model.fit(data.train1, data.train_ans, epochs=100, callbacks = [es], validation_data=(data.validate1, data.validate_ans))  
-    return model, history
-
-
+    
+    
+    if args.envtype == 0:
+        train    = data.train1
+        test     = data.test1
+        validate = data.validate1 
+        input_size = data.train1.shape[1]
         
+    elif args.envtype == 1:
+        train    = [data.train1,    data.train3]
+        test     = [data.test1,     data.test3]
+        validate = [data.validate1, data.validate3]
+        input_size = data.train1.shape[1]
+        
+    elif args.envtype == 2:
+        train    = [data.trainf,    data.trainr]
+        test     = [data.testf,     data.testr]
+        validate = [data.validatef, data.validater]
+        input_size = data.trainf.shape[1]
+           
+    model = create_f(input_size = input_size)
+    es = EarlyStopping(monitor='val_loss', verbose=1, patience=patience)
+  
+    history = model.fit(train, data.train_ans, epochs=100, callbacks = [es], validation_data=(validate, data.validate_ans))  
+    acc = model.evaluate(test, data.test_ans, verbose=0)[1]
+    acc_train = model.evaluate(train, data.train_ans, verbose=0)[1]
+    return model, history, acc, acc_train
+
+     
 times = args.times
 
-if not args.cds:
-    data_list = generate_data("../results/" + ids, enviroment_size, shift)
-else:
-    data_list = generate_data_cds_1("../results/" + ids, enviroment_size , shift , 
-                                    genome_file = "../data/ecoli.genbank", t = times)
-    
-name = ids + "_{:02d}_{:02d}_cds_{}".format(enviroment_size, shift, args.cds)
+
+data_g = generate_data("../results/" + ids, enviroment_size, shift, t = times)
+
+name = ids + "_{:02d}_{:02d}_{}".format(enviroment_size, shift, args.envtype)
 date = "{:%Y-%m-%d-%H-%M}".format(datetime.datetime.now())
 path = "../results/{}/{}".format(net_type, date)
 
@@ -70,13 +86,10 @@ t = 0
 for i in range(times):
     print(i, t)
 
-    data = data_list[i]
+    data = next(data_g)
     start = time.time()
-    model, history = run_model(create_f, data, patience)
+    model, history, acc, acc_train = run_model(create_f, data, patience)
     t += time.time() - start
-
-    acc = model.evaluate(data.test1, data.test_ans, verbose=0)[1]
-    acc_train = model.evaluate(data.train1, data.train_ans, verbose=0)[1]
 
     test_accs.append(acc)
     train_accs.append(acc_train) 
@@ -85,7 +98,6 @@ for i in range(times):
         model_json = model.to_json()
         with open(os.path.join(path, "model.json"), "w") as json_file:
             json_file.write(model_json)          
-          
           
     model.save_weights(os.path.join(path, "{}.weights".format(i)))
     
